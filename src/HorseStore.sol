@@ -10,6 +10,9 @@ import {IHorseStore} from "./IHorseStore.sol";
  * @notice An NFT that represents a horse. Horses should be fed daily to keep happy, ideally several times a day. 
  */
 contract HorseStore is IHorseStore, ERC721Enumerable {
+    // ERRORS
+    error HorseStore__InvalidId();
+
     string constant NFT_NAME = "HorseStore";
     string constant NFT_SYMBOL = "HS";
     uint256 public constant HORSE_HAPPY_IF_FED_WITHIN = 1 days;
@@ -18,6 +21,12 @@ contract HorseStore is IHorseStore, ERC721Enumerable {
 
     constructor() ERC721(NFT_NAME, NFT_SYMBOL) {}
 
+    // Modifier is added to ensure that the given horseId exists.
+    modifier doesNftIdExist(uint256 horseId) {
+        if (horseId > totalSupply()) revert HorseStore__InvalidId();
+        _;
+    }
+
     /*
      * @notice allows anyone to mint their own horse NFT. 
      */
@@ -25,11 +34,11 @@ contract HorseStore is IHorseStore, ERC721Enumerable {
         _safeMint(msg.sender, totalSupply());
     }
 
-    /* 
+    /*  
      * @param horseId the id of the horse to feed
      * @notice allows anyone to feed anyone else's horse. 
      */
-    function feedHorse(uint256 horseId) external {
+    function feedHorse(uint256 horseId) external doesNftIdExist(horseId) {
         horseIdToFedTimeStamp[horseId] = block.timestamp;
     }
 
@@ -38,7 +47,7 @@ contract HorseStore is IHorseStore, ERC721Enumerable {
      * @return true if the horse is happy, false otherwise
      * @notice a horse is happy IFF it has been fed within the last HORSE_HAPPY_IF_FED_WITHIN seconds
      */
-    function isHappyHorse(uint256 horseId) external view returns (bool) {
+    function isHappyHorse(uint256 horseId) external view doesNftIdExist(horseId) returns (bool) {
         if (horseIdToFedTimeStamp[horseId] <= block.timestamp - HORSE_HAPPY_IF_FED_WITHIN) {
             return false;
         }
